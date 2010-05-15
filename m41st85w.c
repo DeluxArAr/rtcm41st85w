@@ -187,7 +187,7 @@ static void m41st85w_enable_clock(int enable)
 
 /*		+change name attach->probe with new parameters		*/
 /*static int m41st85w_probe(struct i2c_adapter *adap, int addr, int kind)*/
-static int m41st85w_probe(struct i2c_client *client, const struct i2c_device_id *id)
+static int __devinit m41st85w_probe(struct i2c_client *client, const struct i2c_device_id *id)
 {	
 	int ret = 0;
 	struct i2c_client *c;
@@ -271,7 +271,7 @@ static int m41st85w_probe(struct i2c_client *client, const struct i2c_device_id 
 	return i2c_probe(adap, &addr_data, m41st85w_attach);
 }*/
 
-static int m41st85w_remove(struct i2c_client *client)
+static int __devexit m41st85w_remove(struct i2c_client *client)
 {
 	printk("M41ST85W: m41st85w_remove() successfully called\n");
 	if (client) {
