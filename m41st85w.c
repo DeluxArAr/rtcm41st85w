@@ -43,7 +43,7 @@ static unsigned short slave_address = M41ST85W_I2C_SLAVE_ADDR;
 
 //*struct i2c_driver m41st85w_driver;	//old
 struct i2c_client *m41st85w_i2c_client = NULL;
-//extern int (*set_rtc) (void);
+extern int (*set_rtc) (void);
 
 //*static unsigned short ignore[] = { I2C_CLIENT_END };	//old
 //*static unsigned short normal_addr[] =	//old
@@ -195,6 +195,7 @@ static int m41st85w_probe(struct i2c_client *client, const struct i2c_device_id 
 	unsigned char data[10];
 	unsigned char ad[1] = {0};	
 
+	EXPORT_SYMBOL(set_rtc);
 	printk("M41ST85W: m41st85w_probe() successfully called\n");		
 	/*struct i2c_msg ctrl_wr[1] = {
 		{addr, 0, 2, data},
@@ -252,7 +253,7 @@ static int m41st85w_probe(struct i2c_client *client, const struct i2c_device_id 
         wall_to_monotonic.tv_sec = -xtime.tv_sec;
         wall_to_monotonic.tv_nsec = -xtime.tv_nsec;
 
-	//set_rtc = m41st85w_k_set_rtc_time;
+	set_rtc = m41st85w_k_set_rtc_time;
 
 	//*ret = i2c_attach_client(c);
 
