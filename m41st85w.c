@@ -741,6 +741,7 @@ static int __init m41st85w_init(void)
 //	normal_addr[0] = slave_address;
 
 	retval = i2c_add_driver(&m41st85w_driver);
+	printk("M41ST85W m41st85w_init: i2c_add_driver(&m41st85w_driver) retval=%d\n", retval);	
 
 	if (retval == 0) {
 		misc_register(&m41st85w_rtc_miscdev);
