@@ -33,13 +33,8 @@
 
 #include "m41st85w.h"
 
-/* add from rtc-m41t80.c */
-#define M41T80_FEATURE_HT	(1 << 0)	/* Halt feature */
-#define M41T80_FEATURE_BL	(1 << 1)	/* Battery low indicator */
-#define M41T80_FEATURE_SQ	(1 << 2)	/* Squarewave feature */
-
 static int m41st85w_attached;
-static unsigned short slave_address = M41ST85W_I2C_SLAVE_ADDR;
+//static unsigned short slave_address = M41ST85W_I2C_SLAVE_ADDR;
 
 //*struct i2c_driver m41st85w_driver;	//old
 struct i2c_client *m41st85w_i2c_client = NULL;
@@ -84,8 +79,7 @@ static int m41st85w_command(struct i2c_client *client, unsigned int cmd,
 
 /*		+		*/
 static struct i2c_device_id m41st85w_idtable[] = {
-	//{ "m41st85w", 0 },
-	{ "m41st85w", M41T80_FEATURE_HT | M41T80_FEATURE_BL | M41T80_FEATURE_SQ },
+	{ "m41st85w", 0 },
 	{}
 };
 
@@ -189,11 +183,11 @@ static void m41st85w_enable_clock(int enable)
 /*static int m41st85w_probe(struct i2c_adapter *adap, int addr, int kind)*/
 static int __devinit m41st85w_probe(struct i2c_client *client, const struct i2c_device_id *id)
 {	
-	int ret = 0;
-	struct i2c_client *c;
+	//int ret = 0;
+	//struct i2c_client *c;
 	struct rtc_time rtctm;
 	unsigned char data[10];
-	unsigned char ad[1] = {0};	
+	//unsigned char ad[1] = {0};	
 
 	EXPORT_SYMBOL(set_rtc);
 	printk("M41ST85W: m41st85w_probe() successfully called\n");		
@@ -733,13 +727,24 @@ void m41st85w_k_set_tlet(struct work_struct *work)
 	m41st85w_command(m41st85w_i2c_client, M41ST85W_SETTIME,&new_rtctm);
 }
 
+static struct i2c_board_info __initdata m41st85w_i2c_board_info[] = {
+  {
+    I2C_BOARD_INFO("m41st85w", 0x68),   
+  },
+};
+
+
+
 static int __init m41st85w_init(void)
 {	
-	int retval = 0;	
+	int retval = 0;
 
-	printk("M41ST85W: m41st85w_init called\n");
+	printk("M41ST85W: m41st85w_init called\n");	
 
 //	normal_addr[0] = slave_address;
+
+	retval = i2c_register_board_info(0, m41st85w_i2c_board_info, ARRAY_SIZE(m41st85w_i2c_board_info));
+	printk("M41ST85W m41st85w_init: i2c_register_board_info retval=%d\n", retval);	
 
 	retval = i2c_add_driver(&m41st85w_driver);
 	printk("M41ST85W m41st85w_init: i2c_add_driver(&m41st85w_driver) retval=%d\n", retval);	
