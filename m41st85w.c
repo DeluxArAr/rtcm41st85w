@@ -33,8 +33,13 @@
 
 #include "m41st85w.h"
 
+/* add from rtc-m41t80.c */
+#define M41T80_FEATURE_HT	(1 << 0)	/* Halt feature */
+#define M41T80_FEATURE_BL	(1 << 1)	/* Battery low indicator */
+#define M41T80_FEATURE_SQ	(1 << 2)	/* Squarewave feature */
+
 static int m41st85w_attached;
-//static unsigned short slave_address = M41ST85W_I2C_SLAVE_ADDR;
+static unsigned short slave_address = M41ST85W_I2C_SLAVE_ADDR;
 
 //*struct i2c_driver m41st85w_driver;	//old
 struct i2c_client *m41st85w_i2c_client = NULL;
@@ -56,6 +61,11 @@ static int m41st85w_rtc_open(struct inode *inode, struct file *file);
 static int m41st85w_rtc_release(struct inode *inode, struct file *file);
 static int m41st85w_k_set_rtc_time(void);
 void m41st85w_k_set_tlet(struct work_struct *work);
+
+static int m41st85w_get_datetime(struct i2c_client *, struct rtc_time *);
+static int m41st85w_set_datetime(struct i2c_client *, struct rtc_time *);
+static int m41st85w_rtc_ioctl(struct inode *, struct file *,
+		   unsigned int, unsigned long);
 
 static struct file_operations rtc_fops = {
       owner:THIS_MODULE,
@@ -79,7 +89,8 @@ static int m41st85w_command(struct i2c_client *client, unsigned int cmd,
 
 /*		+		*/
 static struct i2c_device_id m41st85w_idtable[] = {
-	{ "m41st85w", 0 },
+	//{ "m41st85w", 0 },
+	{ "m41st85w", M41T80_FEATURE_HT | M41T80_FEATURE_BL | M41T80_FEATURE_SQ },
 	{}
 };
 
@@ -179,17 +190,42 @@ static void m41st85w_enable_clock(int enable)
 	printk("M41ST85W: m41st85w_enable_clock() successfully exit\n");
 }
 
+
+/*
+ *регистрация RTC
+*/
+
+static int m41st85w_rtc_read_time(struct device *dev, struct rtc_time *tm)
+{
+	return m41st85w_get_datetime(to_i2c_client(dev), tm);
+}
+
+static int m41st85w_rtc_set_time(struct device *dev, struct rtc_time *tm)
+{
+	return m41st85w_set_datetime(to_i2c_client(dev), tm);
+}
+
+static struct rtc_class_ops m41st85w_rtc_ops = {
+	.read_time = m41st85w_rtc_read_time,	//
+	.set_time = m41st85w_rtc_set_time,	//
+};
+/**/
+
+
+
+
 /*		+change name attach->probe with new parameters		*/
 /*static int m41st85w_probe(struct i2c_adapter *adap, int addr, int kind)*/
 static int __devinit m41st85w_probe(struct i2c_client *client, const struct i2c_device_id *id)
 {	
-	//int ret = 0;
-	//struct i2c_client *c;
+	int ret = 0;
+	struct i2c_client *c;
 	struct rtc_time rtctm;
+	struct rtc_device *rtc = NULL;
 	unsigned char data[10];
-	//unsigned char ad[1] = {0};	
+	unsigned char ad[1] = {0};	
 
-	EXPORT_SYMBOL(set_rtc);
+	//EXPORT_SYMBOL(set_rtc);
 	printk("M41ST85W: m41st85w_probe() successfully called\n");		
 	/*struct i2c_msg ctrl_wr[1] = {
 		{addr, 0, 2, data},
@@ -228,6 +264,14 @@ static int __devinit m41st85w_probe(struct i2c_client *client, const struct i2c_
 		goto out;
 	}*/
 
+	/* регистрация RTC */
+	rtc = rtc_device_register(client->name, &client->dev,
+				  &m41st85w_rtc_ops, THIS_MODULE);  
+	if (IS_ERR(rtc)) {
+		printk("Error in registration RTC\n");
+		rtc = NULL;
+		goto exit;
+	}
 	/* i.e. skip the error catching code in m41st85w_command for now */
 	m41st85w_attached = 1;
 	printk("M41ST85W: m41st85w_probe() m41st85w_attached = 1\n");
@@ -247,7 +291,7 @@ static int __devinit m41st85w_probe(struct i2c_client *client, const struct i2c_
         wall_to_monotonic.tv_sec = -xtime.tv_sec;
         wall_to_monotonic.tv_nsec = -xtime.tv_nsec;
 
-	set_rtc = m41st85w_k_set_rtc_time;
+	//set_rtc = m41st85w_k_set_rtc_time;
 
 	//*ret = i2c_attach_client(c);
 
@@ -256,7 +300,7 @@ static int __devinit m41st85w_probe(struct i2c_client *client, const struct i2c_
 		m41st85w_attached = 0;
 		kfree(c);
 	}*/
-
+exit:
 	return 0;
 }
 
@@ -330,8 +374,8 @@ static int m41st85w_get_datetime(struct i2c_client *client, struct rtc_time *dt)
 }
 
 static int
-m41st85w_set_datetime(struct i2c_client *client, struct rtc_time *dt,
-		      int datetoo)
+m41st85w_set_datetime(struct i2c_client *client, struct rtc_time *dt)
+//-		      int datetoo)
 {
 	unsigned char buf[8];
 	int ret, len = 4;
@@ -348,7 +392,7 @@ m41st85w_set_datetime(struct i2c_client *client, struct rtc_time *dt,
 	m41ST85w_set_param(buf, MIN, dt->tm_min);
 	m41ST85w_set_param(buf, HOUR, dt->tm_hour);
 
-	if (datetoo) {
+	//-if (datetoo) {
 		len = 8;
 		m41ST85w_set_param(buf, WDAY, dt->tm_wday);
 		m41ST85w_set_param(buf, MDAY, dt->tm_mday);
@@ -357,7 +401,7 @@ m41st85w_set_datetime(struct i2c_client *client, struct rtc_time *dt,
  * and the chip calulates leap years based on 2000, thus we adjust by 100.
  */
 		m41ST85w_set_param(buf, YEAR, dt->tm_year - 100);
-	}
+	//-}
 	ret = i2c_master_send(client, (char *)buf, len);
 	if (ret >= 0)
 		ret = 0;
@@ -470,11 +514,11 @@ m41st85w_command(struct i2c_client *client, unsigned int cmd, void *arg)
 
 	case M41ST85W_SETTIME:
 		printk("M41ST85W: m41st85w_command(M41ST85W_SETTIME) successfully exit\n");
-		return m41st85w_set_datetime(client, arg, 0);
+		return m41st85w_set_datetime(client, arg);//-
 
 	case M41ST85W_SETDATETIME:
 		printk("M41ST85W: m41st85w_command(M41ST85W_SETDATETIME) successfully exit\n");
-		return m41st85w_set_datetime(client, arg, 1);
+		return m41st85w_set_datetime(client, arg);//-
 
 	case M41ST85W_GETCTRL:
 		printk("M41ST85W: m41st85w_command(M41ST85W_GETCTRL) successfully exit\n");
@@ -727,24 +771,13 @@ void m41st85w_k_set_tlet(struct work_struct *work)
 	m41st85w_command(m41st85w_i2c_client, M41ST85W_SETTIME,&new_rtctm);
 }
 
-static struct i2c_board_info __initdata m41st85w_i2c_board_info[] = {
-  {
-    I2C_BOARD_INFO("m41st85w", 0x68),   
-  },
-};
-
-
-
 static int __init m41st85w_init(void)
 {	
-	int retval = 0;
+	int retval = 0;	
 
-	printk("M41ST85W: m41st85w_init called\n");	
+	printk("M41ST85W: m41st85w_init called\n");
 
 //	normal_addr[0] = slave_address;
-
-	retval = i2c_register_board_info(0, m41st85w_i2c_board_info, ARRAY_SIZE(m41st85w_i2c_board_info));
-	printk("M41ST85W m41st85w_init: i2c_register_board_info retval=%d\n", retval);	
 
 	retval = i2c_add_driver(&m41st85w_driver);
 	printk("M41ST85W m41st85w_init: i2c_add_driver(&m41st85w_driver) retval=%d\n", retval);	
@@ -767,7 +800,7 @@ static void __exit m41st85w_exit(void)
 	remove_proc_entry(PROC_M41ST85W_NAME, NULL);
 	misc_deregister(&m41st85w_rtc_miscdev);
 	i2c_del_driver(&m41st85w_driver);
-	printk("M41ST85W: m41st85w_init successfully exit\n");
+	printk("M41ST85W: m41st85w_exit successfully exit\n");
 }
 
 module_init(m41st85w_init);
