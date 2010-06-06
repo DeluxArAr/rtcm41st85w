@@ -250,6 +250,15 @@ static int __devinit m41st85w_probe(struct i2c_client *client, const struct i2c_
 	data[0] = 0;
 	data[1] = 0;
 
+	/* i.e. skip the error catching code in m41st85w_command for now */
+	m41st85w_attached = 1;
+	printk("M41ST85W: m41st85w_probe() m41st85w_attached = 1\n");
+	
+
+	//*m41st85w_i2c_client = c;
+	m41st85w_i2c_client = client;
+	i2c_set_clientdata(client, m41st85w_i2c_client);
+
 	/*if ((ret = i2c_transfer(c->adapter, ctrl_wr, 1)) != 1) {
                 printk(KERN_ERR "%s: %s: unable to init ctrl1\n",
 			__func__, c->name);
@@ -272,13 +281,7 @@ static int __devinit m41st85w_probe(struct i2c_client *client, const struct i2c_
 		rtc = NULL;
 		goto exit;
 	}
-	/* i.e. skip the error catching code in m41st85w_command for now */
-	m41st85w_attached = 1;
-	printk("M41ST85W: m41st85w_probe() m41st85w_attached = 1\n");
 	
-
-	//*m41st85w_i2c_client = c;
-	m41st85w_i2c_client = client;
 	m41st85w_enable_clock(1);
 	m41st85w_command(m41st85w_i2c_client, M41ST85W_GETDATETIME,
 		(void *)&rtctm);
