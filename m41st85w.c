@@ -43,7 +43,7 @@ static unsigned short slave_address = M41ST85W_I2C_SLAVE_ADDR;
 
 //*struct i2c_driver m41st85w_driver;	//old
 struct i2c_client *m41st85w_i2c_client = NULL;
-extern int (*set_rtc) (void);
+//extern int (*set_rtc) (void);
 
 //*static unsigned short ignore[] = { I2C_CLIENT_END };	//old
 //*static unsigned short normal_addr[] =	//old
