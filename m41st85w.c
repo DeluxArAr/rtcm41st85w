@@ -785,10 +785,11 @@ static struct i2c_board_info __initdata m41st85w_i2c_board_info[] = {
 
 static int __init m41st85w_init(void)
 {	
-	int retval = 0;	
+	int retval = 0, ret;	
 
 	printk("M41ST85W: m41st85w_init called\n");
-	i2c_register_board_info(1, m41st85w_i2c_board_info, ARRAY_SIZE(m41st85w_i2c_board_info));
+	ret = i2c_register_board_info(1, m41st85w_i2c_board_info, ARRAY_SIZE(m41st85w_i2c_board_info));
+	printk("M41ST85W m41st85w_init: i2c_register_board_info retval=%d\n", ret);
 
 //	normal_addr[0] = slave_address;
 
