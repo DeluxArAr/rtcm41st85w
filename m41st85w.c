@@ -38,6 +38,7 @@
 #define M41T80_FEATURE_BL	(1 << 1)	/* Battery low indicator */
 #define M41T80_FEATURE_SQ	(1 << 2)	/* Squarewave feature */
 
+
 static int m41st85w_attached;
 static unsigned short slave_address = M41ST85W_I2C_SLAVE_ADDR;
 
@@ -97,7 +98,7 @@ static struct i2c_device_id m41st85w_idtable[] = {
 MODULE_DEVICE_TABLE(i2c, m41st85w_idtable);
 /*		+		*/
 
-struct i2c_driver m41st85w_driver = {
+static struct i2c_driver m41st85w_driver = {
       //id:I2C_DRIVERID_M41ST85W,
       //*attach_adapter:m41st85w_probe,
       //*detach_client:m41st85w_detach,
@@ -105,7 +106,7 @@ struct i2c_driver m41st85w_driver = {
 		.name	= "m41st85w",
 	},	
 	.probe = m41st85w_probe,	//+
-	.remove = m41st85w_remove,	//+
+	.remove = __devexit_p(m41st85w_remove),	//+
 	.command = m41st85w_command,
 	.id_table = m41st85w_idtable,	//+
 };
@@ -225,7 +226,6 @@ static int __devinit m41st85w_probe(struct i2c_client *client, const struct i2c_
 	unsigned char data[10];
 	unsigned char ad[1] = {0};	
 
-	//EXPORT_SYMBOL(set_rtc);
 	printk("M41ST85W: m41st85w_probe() successfully called\n");		
 	/*struct i2c_msg ctrl_wr[1] = {
 		{addr, 0, 2, data},
@@ -771,11 +771,24 @@ void m41st85w_k_set_tlet(struct work_struct *work)
 	m41st85w_command(m41st85w_i2c_client, M41ST85W_SETTIME,&new_rtctm);
 }
 
+/**/
+static struct i2c_board_info __initdata m41st85w_i2c_board_info[] = {
+  {               
+      I2C_BOARD_INFO("m41st85w", 0x68),
+  }
+};
+
+/**/
+
 static int __init m41st85w_init(void)
 {	
 	int retval = 0;	
 
 	printk("M41ST85W: m41st85w_init called\n");
+	
+	/*first argument - bus number*/
+	i2c_register_board_info(1, m41st85w_i2c_board_info, ARRAY_SIZE(m41st85w_i2c_board_info));
+
 
 //	normal_addr[0] = slave_address;
 
