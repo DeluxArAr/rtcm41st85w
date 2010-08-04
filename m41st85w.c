@@ -771,25 +771,12 @@ void m41st85w_k_set_tlet(struct work_struct *work)
 	m41st85w_command(m41st85w_i2c_client, M41ST85W_SETTIME,&new_rtctm);
 }
 
-/**/
-static struct i2c_board_info __initdata m41st85w_i2c_board_info[] = {
-  {               
-      I2C_BOARD_INFO("m41st85w", 0x68),
-  }
-};
-
-/**/
 
 static int __init m41st85w_init(void)
 {	
 	int retval = 0, ret;
 
 	printk("M41ST85W: m41st85w_init called\n");
-	
-	/*first argument - bus number*/
-	i2c_register_board_info(1, m41st85w_i2c_board_info, ARRAY_SIZE(m41st85w_i2c_board_info));
-	printk("M41ST85W m41st85w_init: i2c_register_board_info retval=%d\n", ret);
-
 
 //	normal_addr[0] = slave_address;
 
