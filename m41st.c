@@ -264,8 +264,6 @@ static int __init m41st85w_init(void)
 
 	printk("M41ST85W: m41st85w_init called\n");
 
-//	normal_addr[0] = slave_address;
-
 	retval = i2c_add_driver(&m41st85w_driver);
 	printk("M41ST85W m41st85w_init: i2c_add_driver(&m41st85w_driver) retval=%d\n", retval);	
 
@@ -275,8 +273,6 @@ static int __init m41st85w_init(void)
 				       m41st85w_rtc_read_proc, NULL);
 		printk("I2C: M41ST85W RTC driver successfully loaded\n");
 	}
-
-	//INIT_WORK(&short_wq, m41st85w_k_set_tlet);
 	printk("M41ST85W: m41st85w_init successfully exit\n");
 	return retval;
 }
