@@ -26,6 +26,7 @@
 #include <linux/mtd/physmap.h>
 #include <linux/platform_device.h>
 #include <linux/io.h>
+#include <linux/i2c.h>
 #include <mach/hardware.h>
 #include <asm/cputype.h>
 #include <asm/irq.h>
@@ -293,6 +294,7 @@ static struct i2c_board_info __initdata m41st85w_i2c_device[] = {
 	},
 };
 
+
 static void __init iq31244_init_machine(void)
 {
 	platform_device_register(&iop3xx_i2c0_device);
@@ -301,7 +303,8 @@ static void __init iq31244_init_machine(void)
 	platform_device_register(&iq31244_serial_device);
 	platform_device_register(&iop3xx_dma_0_channel);
 	platform_device_register(&iop3xx_dma_1_channel);
-	
+
+	printk("RTC m41st85w added\n");	
 	i2c_register_board_info(0, m41st85w_i2c_device,
 		ARRAY_SIZE(m41st85w_i2c_device));
 
