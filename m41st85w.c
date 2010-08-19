@@ -305,7 +305,7 @@ static int __devexit m41st85w_remove(struct i2c_client *client)
 		client = m41st85w_i2c_client = NULL;
 	}
 	m41st85w_enable_clock(0);
-	rtc_device_unregister(ds1307->rtc);
+	rtc_device_unregister(rtc);
 	printk("M41ST85W: m41st85w_remove() successfully exit\n");
 
 	return 0;
