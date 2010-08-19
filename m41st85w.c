@@ -270,13 +270,13 @@ static int __devinit m41st85w_probe(struct i2c_client *client, const struct i2c_
 	m41st85w_command(m41st85w_i2c_client, M41ST85W_GETDATETIME,
 		(void *)&rtctm);
 
-	xtime.tv_nsec = 0;
+	/*xtime.tv_nsec = 0;
 	xtime.tv_sec = mktime(1900 + rtctm.tm_year, rtctm.tm_mon + 1,
 		rtctm.tm_mday, rtctm.tm_hour, rtctm.tm_min, rtctm.tm_sec);
 	
 	/* Fix for Uptime */
-        wall_to_monotonic.tv_sec = -xtime.tv_sec;
-        wall_to_monotonic.tv_nsec = -xtime.tv_nsec;
+        /*wall_to_monotonic.tv_sec = -xtime.tv_sec;
+        wall_to_monotonic.tv_nsec = -xtime.tv_nsec;*/
 
 	//set_rtc = m41st85w_k_set_rtc_time;
 
