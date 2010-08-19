@@ -732,7 +732,7 @@ void m41st85w_k_set_tlet(struct work_struct *work)
 {
 	struct rtc_time new_rtctm, old_rtctm;
 	//unsigned long nowtime = xtime.tv_sec;
-	//unsigned long nowtime;
+	unsigned long nowtime;
 
 	if (m41st85w_command(m41st85w_i2c_client, M41ST85W_GETDATETIME, &old_rtctm))
 		return;
