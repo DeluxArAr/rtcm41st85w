@@ -33,11 +33,6 @@
 
 #include "m41st85w.h"
 
-/* add from rtc-m41t80.c */
-#define M41T80_FEATURE_HT	(1 << 0)	/* Halt feature */
-#define M41T80_FEATURE_BL	(1 << 1)	/* Battery low indicator */
-#define M41T80_FEATURE_SQ	(1 << 2)	/* Squarewave feature */
-
 
 static int m41st85w_attached;
 static unsigned short slave_address = M41ST85W_I2C_SLAVE_ADDR;
@@ -90,18 +85,16 @@ static int m41st85w_command(struct i2c_client *client, unsigned int cmd,
 
 /*		+		*/
 static struct i2c_device_id m41st85w_idtable[] = {
-	//{ "m41st85w", 0 },
-	{ "m41st85w", M41T80_FEATURE_HT | M41T80_FEATURE_BL | M41T80_FEATURE_SQ },
+	{ "m41st85w", 0 },
 	{}
 };
+
+#define DAT(x) ((unsigned int)((x)->data))	/* keep the control register info */
 
 MODULE_DEVICE_TABLE(i2c, m41st85w_idtable);
 /*		+		*/
 
 static struct i2c_driver m41st85w_driver = {
-      //id:I2C_DRIVERID_M41ST85W,
-      //*attach_adapter:m41st85w_probe,
-      //*detach_client:m41st85w_detach,
 	.driver = {
 		.name	= "m41st85w",
 	},	
@@ -110,8 +103,6 @@ static struct i2c_driver m41st85w_driver = {
 	.command = m41st85w_command,
 	.id_table = m41st85w_idtable,	//+
 };
-
-#define DAT(x) ((unsigned int)((x)->data))	/* keep the control register info */
 
 static int m41st85w_readram(char *buf, int len)
 {
@@ -137,7 +128,7 @@ static void m41st85w_enable_clock(int enable)
     unsigned char ctrl_info[2];
     int ret;
 
-	printk("M41ST85W: m41st85w_enable_clock() successfully called\n");
+    printk("M41ST85W: m41st85w_enable_clock() successfully called\n");
     if(enable)
     {
         ctrl_info[0] = SQW_ENABLE;
@@ -215,8 +206,6 @@ static struct rtc_class_ops m41st85w_rtc_ops = {
 
 
 
-/*		+change name attach->probe with new parameters		*/
-/*static int m41st85w_probe(struct i2c_adapter *adap, int addr, int kind)*/
 static int __devinit m41st85w_probe(struct i2c_client *client, const struct i2c_device_id *id)
 {	
 	int ret = 0;
