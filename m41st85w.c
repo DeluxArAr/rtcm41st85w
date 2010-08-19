@@ -204,7 +204,8 @@ static struct rtc_class_ops m41st85w_rtc_ops = {
 /**/
 
 
-
+EXPORT_SYMBOL(xtime);
+EXPORT_SYMBOL(wall_to_monotonic);
 
 static int __devinit m41st85w_probe(struct i2c_client *client, const struct i2c_device_id *id)
 {	
