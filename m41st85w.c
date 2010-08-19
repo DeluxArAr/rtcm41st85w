@@ -39,6 +39,7 @@ static unsigned short slave_address = M41ST85W_I2C_SLAVE_ADDR;
 
 //*struct i2c_driver m41st85w_driver;	//old
 struct i2c_client *m41st85w_i2c_client = NULL;
+struct rtc_device *rtc = NULL;
 //extern int (*set_rtc) (void);
 
 //*static unsigned short ignore[] = { I2C_CLIENT_END };	//old
@@ -209,7 +210,6 @@ static int __devinit m41st85w_probe(struct i2c_client *client, const struct i2c_
 	int ret = 0;
 	struct i2c_client *c;
 	struct rtc_time rtctm;
-	struct rtc_device *rtc = NULL;
 	unsigned char data[10];
 	unsigned char ad[1] = {0};	
 
@@ -305,6 +305,7 @@ static int __devexit m41st85w_remove(struct i2c_client *client)
 		client = m41st85w_i2c_client = NULL;
 	}
 	m41st85w_enable_clock(0);
+	rtc_device_unregister(ds1307->rtc);
 	printk("M41ST85W: m41st85w_remove() successfully exit\n");
 
 	return 0;
