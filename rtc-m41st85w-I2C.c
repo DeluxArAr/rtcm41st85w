@@ -16,17 +16,6 @@
 #include <linux/slab.h>
 #include <linux/bcd.h>
 
-#define M41ST85W_REG_SECONDS	0x01
-#define M41ST85W_REG_MINUTES	0x02
-#define M41ST85W_REG_HOURS	0x03
-#define M41ST85W_REG_DAY	0x04
-#define M41ST85W_REG_DATE	0x05
-#define M41ST85W_REG_MONTH	0x06
-#define M41ST85W_REG_YEAR	0x07
-#define M41ST85W_REG_ALMONTH	0x0A	/* Alarm month */
-#define M41ST85W_REG_ALHOUR	0x0C	/* Alarm month */
-#define M41ST85W_REG_SQW	0x13
-
 #define SQW_ENABLE		0x40	/* Square Wave Enable */
 #define SQW_DISABLE		0x00	/* Square Wave disable */
 
@@ -59,31 +48,34 @@ struct m41st85w {
 
 static struct i2c_driver m41st85w_driver;
 
-static int m41st85w_set_ctrl(struct i2c_client *client, int *cinfo)
+static int m41st85w_set_ctrl(struct i2c_client *client, unsigned char *cinfo)
 {
-//	unsigned char buf[2];
+	unsigned char buf[2];
 	int ret;
 
 	/* need to set square wave first */
-//	buf[0] = 13;
-//	buf[1] = cinfo[1];
-//	ret = i2c_master_send(client, (char *)buf, 2);
-	ret = i2c_smbus_write_byte_data(client, M41ST85W_REG_SQW, cinfo[1]);	//cinfo -int
+	buf[0] = 13;
+	buf[1] = cinfo[1];
+	ret = i2c_master_send(client, (char *)buf, 2);
 	if (ret < 0)
 		return ret;
 
-//	buf[0] = 10;
-//	buf[1] = cinfo[0];
+	buf[0] = 10;
+	buf[1] = cinfo[0];
 
-//	ret = i2c_master_send(client, (char *)buf, 2);
+	ret = i2c_master_send(client, (char *)buf, 2);
 
-	return i2c_smbus_write_byte_data(client, M41ST85W_REG_ALMONTH, cinfo[0]);;
+	return ret;
 }
 
 static void m41st85w_enable_clock(struct i2c_client *client, int enable)
 {
-	int buf1, buf2;
-	int ctrl_info[2];
+	unsigned char	buf[2], buf2[2], ad[1] = { 1};
+	struct i2c_msg	msgs[2] = {
+		{ client->addr , 0,        1, ad},
+		{ client->addr , I2C_M_RD, 1, buf}
+	};
+	unsigned char ctrl_info[2];
 	int ret;
 
 	if (enable) {
@@ -97,59 +89,63 @@ static void m41st85w_enable_clock(struct i2c_client *client, int enable)
 	if (ret < 0)
 		printk(KERN_ERR "%s %d: m41st85w_set_ctrl failed\n",
 				__func__, __LINE__);
-
-	/* read Clock-Halt bit and second counter */
-	buf1 = i2c_smbus_read_byte_data(client, M41ST85W_REG_ALHOUR);
-	if (buf1 < 0)
-		printk(KERN_ERR "%s %d: i2c_smbus_read_byte_data failed\n",
+	/* read addr 1 (Clock-Halt bit and second counter */
+	ad[0] = 0xC;
+	ret = i2c_transfer(client->adapter, msgs, 2);
+	if (ret < 0)
+		printk(KERN_ERR "%s %d: i2c_transfer failed\n",
 				__func__, __LINE__);
-
-	buf2 = i2c_smbus_read_byte_data(client, M41ST85W_REG_SECONDS);
-	if (buf2 < 0)
-		printk(KERN_ERR "%s %d: i2c_smbus_read_byte_data failed\n",
-				__func__, __LINE__);
-
 
 	if (enable) {
-		buf1 &= ~CLOCK_HALT; /* clear Clock-Halt bit */
-		buf2 &= ~CLOCK_STOP;
+		buf2[1] = buf[1] & ~CLOCK_HALT; /* clear Clock-Halt bit */
+		ad[0] = 0x1;
+		ret = i2c_transfer(client->adapter, msgs, 2);
+		buf[1] = buf[1] & ~CLOCK_STOP;
 	} else {
-		buf1 |= CLOCK_HALT; /* set Clock-Halt bit */
-		buf2 |= CLOCK_STOP;
+		buf2[1] = buf2[1] | CLOCK_HALT; /* set Clock-Halt bit */
+		buf[1] = buf[1] | CLOCK_STOP;
 	}
 
-	ret = i2c_smbus_write_byte_data(client, M41ST85W_REG_ALHOUR, buf1);
+	/* addr 12, halt bit */
+	buf2[0] = 0xC;
+	ret = i2c_master_send(client, (char *)buf2, 2);
 	if (ret < 0)
-		printk(KERN_ERR "%s %d: i2c_smbus_write_byte_data failed\n",
+		printk(KERN_ERR "%s %d: i2c_master_send failed\n",
 				__func__, __LINE__);
 
-	ret = i2c_smbus_write_byte_data(client, M41ST85W_REG_SECONDS, buf2);
+	buf[0] = 0x1;
+	ret = i2c_master_send(client, (char *)buf, 2);
 	if (ret < 0)
-		printk(KERN_ERR "%s %d: i2c_smbus_write_byte_data failed\n",
+		printk(KERN_ERR "%s %d: i2c_master_send failed\n",
 				__func__, __LINE__);
 }
 
 static int m41st85w_read_time(struct device *dev, struct rtc_time *dt)
 {
 	struct i2c_client *client = to_i2c_client(dev);
-	u8 buf[7];
-	int ret;
+	unsigned char buf[8], addr[1] = { 0 };
+	struct i2c_msg msgs[2] = {
+		{client->addr, 0, 1, addr},
+		{client->addr, I2C_M_RD, 8, buf}
+	};
+	int ret = -EIO;
 	unsigned int year, month, day, week, hour, minute, second;
 
-	ret = i2c_smbus_read_i2c_block_data(client, 0x01, 7, buf);
+	memset(buf, 0, sizeof(buf));
+	ret = i2c_transfer(client->adapter, msgs, 2);
 
 	if (ret < 0)
 		return ret;
-	if (ret < 7)
-		return -EIO;
+	else
+		ret = 0;
 
-	second = buf[0];
-	minute = buf[1];
-	hour = buf[2];
-	week = buf[3];
-	day = buf[4];
-	month = buf[5];
-	year = buf[6];
+	second = buf[1];
+	minute = buf[2];
+	hour = buf[3];
+	week = buf[4];
+	day = buf[5];
+	month = buf[6];
+	year = buf[7];
 
 	dt->tm_sec = bcd2bin(second & 0x7f);
 	dt->tm_min = bcd2bin(minute & 0x7f);
@@ -166,8 +162,6 @@ static int m41st85w_read_time(struct device *dev, struct rtc_time *dt)
 	if (dt->tm_year < 95)
 		dt->tm_year += 100;
 
-	dt->tm_isdst = 0;
-
 	return rtc_valid_tm(dt);
 }
 
@@ -175,23 +169,24 @@ static int
 		m41st85w_set_time(struct device *dev, struct rtc_time *dt)
 {
 	struct i2c_client *client = to_i2c_client(dev);
-	u8 buf[7];
+	unsigned char buf[8];
+	int len = 8;
 
-	buf[0] = bin2bcd(dt->tm_sec);
-	buf[1] = bin2bcd(dt->tm_min);
-	buf[2] = bin2bcd(dt->tm_hour);
-	buf[3] = bin2bcd(dt->tm_wday);
-	buf[4] = bin2bcd(dt->tm_mday);
-	buf[5] = bin2bcd(dt->tm_mon + 1);
+	buf[0] = 1;
+	buf[1] = bin2bcd(dt->tm_sec);
+	buf[2] = bin2bcd(dt->tm_min);
+	buf[3] = bin2bcd(dt->tm_hour);
+	buf[4] = bin2bcd(dt->tm_wday);
+	buf[5] = bin2bcd(dt->tm_mday);
+	buf[6] = bin2bcd(dt->tm_mon + 1);
 	/* The year only ranges from 0-99, we are being passed an offset
 	* from 1900, and the chip calulates leap years based on 2000,
 	* thus we adjust by 100.
 	*/
 
-	buf[6] = bin2bcd(dt->tm_year - 100);
+	buf[7] = bin2bcd(dt->tm_year - 100);
 
-	return i2c_smbus_write_i2c_block_data(client,
-					      0x01, 7, buf);
+	return i2c_master_send(client, (char *)buf, len);
 }
 
 static struct rtc_class_ops m41st85w_rtc_ops = {
